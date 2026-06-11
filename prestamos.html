@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Préstamos" />
+  <title>Control de Préstamos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: #0f0f13;
+      color: #e8e6f0;
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+      min-height: 100vh;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+    }
+
+    .container { max-width: 560px; margin: 0 auto; padding-top: 24px; }
+
+    /* Header */
+    .header { margin-bottom: 28px; }
+    .header-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #c8f542; }
+    .eyebrow-text { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6b6880; }
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: #f0eeff; }
+
+    /* Summary cards */
+    .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .card { border-radius: 12px; padding: 12px 10px; }
+    .card-label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #5a5870; margin-bottom: 5px; }
+    .card-value { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+    .card-prestado { background: #1a1f0e; border: 1px solid #c8f54222; }
+    .card-prestado .card-value { color: #c8f542; }
+    .card-abonado { background: #0d1a17; border: 1px solid #60e0c022; }
+    .card-abonado .card-value { color: #60e0c0; }
+    .card-pendiente-red { background: #1a0d0d; border: 1px solid #ff7c7c22; }
+    .card-pendiente-red .card-value { color: #ff7c7c; }
+    .card-pendiente-green { background: #0d1a17; border: 1px solid #60e0c022; }
+    .card-pendiente-green .card-value { color: #60e0c0; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: #18171f; border-radius: 10px; padding: 4px; margin-bottom: 22px; }
+    .tab { flex: 1; padding: 9px 4px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.15s, color 0.15s; background: transparent; color: #6b6880; }
+    .tab.active { background: #c8f542; color: #0f0f13; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 44px 20px; color: #3a3850; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 14px; color: #4a4860; }
+    .empty-sub { font-size: 12px; margin-top: 4px; color: #2a2840; }
+
+    /* Person cards */
+    .person-list { display: flex; flex-direction: column; gap: 10px; }
+    .person-card { background: #18171f; border: 1px solid #2a2838; border-radius: 12px; padding: 16px; }
+    .person-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .person-name-row { display: flex; align-items: center; gap: 8px; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #24223a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #c8f542; flex-shrink: 0; }
+    .person-name { font-weight: 600; font-size: 15px; }
+    .person-status-red { font-size: 13px; font-weight: 700; color: #ff7c7c; }
+    .person-status-green { font-size: 13px; font-weight: 700; color: #60e0c0; }
+    .mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .mini-card { border-radius: 8px; padding: 8px 10px; }
+    .mini-label { font-size: 9px; color: #5a5870; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .mini-value { font-size: 15px; font-weight: 700; }
+    .mini-green { background: #1a1f0e; }
+    .mini-green .mini-value { color: #c8f542; }
+    .mini-teal { background: #0d1a17; }
+    .mini-teal .mini-value { color: #60e0c0; }
+    .progress-wrap { margin-top: 10px; }
+    .progress-bar-bg { height: 4px; background: #24223a; border-radius: 99px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #60e0c0; border-radius: 99px; transition: width 0.4s ease; }
+    .progress-label { font-size: 10px; color: #5a5870; margin-top: 4px; }
+
+    /* Form */
+    .form-card { background: #18171f; border: 1px solid #2a2838; border-radius: 14px; padding: 20px; }
+    .form-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #5a5870; margin-bottom: 6px; }
+    .field input { width: 100%; background: #0f0f13; border: 1px solid #2a2838; border-radius: 8px; padding: 11px 12px; color: #e8e6f0; font-size: 15px; outline: none; -webkit-appearance: none; }
+    .field input:focus { border-color: #c8f54266; }
+    .field-error { font-size: 11px; color: #ff7c7c; margin-top: 4px; }
+    .btn-primary { width: 100%; margin-top: 8px; padding: 13px; background: #c8f542; color: #0f0f13; border: none; border-radius: 9px; font-weight: 700; font-size: 15px; cursor: pointer; letter-spacing: 0.01em; }
+    .btn-teal { background: #60e0c0; color: #0a1a17; }
+
+    /* History */
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item { background: #18171f; border: 1px solid #2a2838; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .history-dot-loan { background: #c8f542; }
+    .history-dot-payment { background: #60e0c0; }
+    .history-body { flex: 1; min-width: 0; }
+    .history-row1 { display: flex; justify-content: space-between; align-items: center; }
+    .history-person { font-weight: 600; font-size: 14px; }
+    .history-amount-loan { font-weight: 700; font-size: 14px; color: #c8f542; }
+    .history-amount-payment { font-weight: 700; font-size: 14px; color: #60e0c0; }
+    .history-row2 { display: flex; justify-content: space-between; margin-top: 2px; }
+    .history-type { font-size: 11px; color: #5a5870; }
+    .history-date { font-size: 11px; color: #3a3850; }
+    .btn-delete { background: none; border: none; cursor: pointer; color: #3a3850; font-size: 20px; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+    .btn-delete:active { color: #ff7c7c; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-eyebrow">
+      <div class="dot"></div>
+      <span class="eyebrow-text">Control de préstamos</span>
+    </div>
+    <h1>Tu cartera prestada</h1>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="cards">
+    <div class="card card-prestado">
+      <div class="card-label">Prestado</div>
+      <div class="card-value" id="total-loaned">$ 0</div>
+    </div>
+    <div class="card card-abonado">
+      <div class="card-label">Abonado</div>
+      <div class="card-value" id="total-paid">$ 0</div>
+    </div>
+    <div class="card card-pendiente-red" id="card-balance">
+      <div class="card-label">Pendiente</div>
+      <div class="card-value" id="total-balance">$ 0</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('resumen')">Resumen</button>
+    <button class="tab" onclick="switchTab('prestar')">Prestar</button>
+    <button class="tab" onclick="switchTab('abonar')">Abonar</button>
+    <button class="tab" onclick="switchTab('historial')">Historial</button>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="panel active" id="panel-resumen">
+    <div id="resumen-empty" class="empty">
+      <div class="empty-icon">💸</div>
+      <div class="empty-title">Aún no hay movimientos registrados.</div>
+      <div class="empty-sub">Empieza prestando dinero desde "Prestar".</div>
+    </div>
+    <div class="person-list" id="resumen-list"></div>
+  </div>
+
+  <!-- PRESTAR -->
+  <div class="panel" id="panel-prestar">
+    <div class="form-card">
+      <div class="form-title">Registrar préstamo</div>
+      <div class="field">
+        <label>Nombre de la persona</label>
+        <input id="loan-person" type="text" placeholder="Ej: Carlos" autocomplete="off" />
+        <div class="field-error" id="loan-error-person"></div>
+      </div>
+      <div class="field">
+        <label>Importe prestado (COP)</label>
+        <input id="loan-amount" type="number" min="0" step="1" placeholder="0" inputmode="numeric" />
+        <div class="field-error" id="loan-error-amount"></div>
+      </div>
+      <div class="field">
+        <label>Fecha</label>
+        <input id="loan-date" type="date" />
+      </div>
+      <div class="field">
+        <label>Nota (opcional)</label>
+        <input id="loan-note" type="text" placeholder="Motivo o contexto..." />
+      </div>
+      <button class="btn-primary" onclick="addLoan()">Registrar préstamo</button>
+    </div>
+  </div>
+
+  <!-- ABONAR -->
+  <div class="panel" id="panel-abonar">
+    <div class="form-card">
+      <div class="form-title">Registrar abono</div>
+      <div class="field">
+        <label>Nombre de la persona</label>
+        <input id="pay-person" type="text" placeholder="Ej: Carlos" autocomplete="off" list="people-list" />
+        <datalist id="people-list"></datalist>
+        <div class="field-error" id="pay-error-person"></div>
+      </div>
+      <div class="field">
+        <label>Importe abonado (COP)</label>
+        <input id="pay-amount" type="number" min="0" step="1" placeholder="0" inputmode="numeric" />
+        <div class="field-error" id="pay-error-amount"></div>
+      </div>
+      <div class="field">
+        <label>Fecha</label>
+        <input id="pay-date" type="date" />
+      </div>
+      <div class="field">
+        <label>Nota (opcional)</label>
+        <input id="pay-note" type="text" placeholder="Motivo o contexto..." />
+      </div>
+      <button class="btn-primary btn-teal" onclick="addPayment()">Registrar abono</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="panel" id="panel-historial">
+    <div id="historial-empty" class="empty" style="display:none">
+      <div class="empty-title">Sin movimientos aún.</div>
+    </div>
+    <div class="history-list" id="historial-list"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let loans    = JSON.parse(localStorage.getItem('loans')    || '[]');
+  let payments = JSON.parse(localStorage.getItem('payments') || '[]');
+
+  function save() {
+    localStorage.setItem('loans',    JSON.stringify(loans));
+    localStorage.setItem('payments', JSON.stringify(payments));
+  }
+
+  function uid() { return Math.random().toString(36).substr(2, 9); }
+  function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+  // ── Format ─────────────────────────────────────────────
+  function fmtCOP(n) {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  }
+  function fmtDate(s) {
+    return new Date(s + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // ── Init date inputs ───────────────────────────────────
+  document.getElementById('loan-date').value = todayStr();
+  document.getElementById('pay-date').value  = todayStr();
+
+  // ── Tabs ───────────────────────────────────────────────
+  function switchTab(id) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const ids = ['resumen','prestar','abonar','historial'];
+      t.classList.toggle('active', ids[i] === id);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    if (id === 'resumen')   renderResumen();
+    if (id === 'historial') renderHistorial();
+    if (id === 'abonar')    renderDatalist();
+  }
+
+  // ── Add loan ───────────────────────────────────────────
+  function addLoan() {
+    const person = document.getElementById('loan-person').value.trim();
+    const amount = parseFloat(document.getElementById('loan-amount').value);
+    const date   = document.getElementById('loan-date').value;
+    const note   = document.getElementById('loan-note').value.trim();
+
+    document.getElementById('loan-error-person').textContent = '';
+    document.getElementById('loan-error-amount').textContent = '';
+
+    if (!person) { document.getElementById('loan-error-person').textContent = 'El nombre es obligatorio.'; return; }
+    if (!amount || amount <= 0) { document.getElementById('loan-error-amount').textContent = 'Introduce un importe válido.'; return; }
+
+    loans.push({ id: uid(), person, amount, date: date || todayStr(), note });
+    save();
+    document.getElementById('loan-person').value = '';
+    document.getElementById('loan-amount').value = '';
+    document.getElementById('loan-note').value   = '';
+    document.getElementById('loan-date').value   = todayStr();
+    updateTotals();
+    showToast('Préstamo registrado ✓');
+  }
+
+  // ── Add payment ────────────────────────────────────────
+  function addPayment() {
+    const person = document.getElementById('pay-person').value.trim();
+    const amount = parseFloat(document.getElementById('pay-amount').value);
+    const date   = document.getElementById('pay-date').value;
+    const note   = document.getElementById('pay-note').value.trim();
+
+    document.getElementById('pay-error-person').textContent = '';
+    document.getElementById('pay-error-amount').textContent = '';
+
+    if (!person) { document.getElementById('pay-error-person').textContent = 'El nombre es obligatorio.'; return; }
+    if (!amount || amount <= 0) { document.getElementById('pay-error-amount').textContent = 'Introduce un importe válido.'; return; }
+
+    payments.push({ id: uid(), person, amount, date: date || todayStr(), note });
+    save();
+    document.getElementById('pay-person').value = '';
+    document.getElementById('pay-amount').value = '';
+    document.getElementById('pay-note').value   = '';
+    document.getElementById('pay-date').value   = todayStr();
+    updateTotals();
+    showToast('Abono registrado ✓');
+  }
+
+  // ── Delete ─────────────────────────────────────────────
+  function deleteLoan(id) {
+    if (!confirm('¿Eliminar este préstamo?')) return;
+    loans = loans.filter(l => l.id !== id);
+    save(); updateTotals(); renderHistorial();
+  }
+  function deletePayment(id) {
+    if (!confirm('¿Eliminar este abono?')) return;
+    payments = payments.filter(p => p.id !== id);
+    save(); updateTotals(); renderHistorial();
+  }
+
+  // ── Totals ─────────────────────────────────────────────
+  function updateTotals() {
+    const loaned  = loans.reduce((s, l) => s + l.amount, 0);
+    const paid    = payments.reduce((s, p) => s + p.amount, 0);
+    const balance = loaned - paid;
+    document.getElementById('total-loaned').textContent  = fmtCOP(loaned);
+    document.getElementById('total-paid').textContent    = fmtCOP(paid);
+    document.getElementById('total-balance').textContent = fmtCOP(balance);
+    const card = document.getElementById('card-balance');
+    card.className = 'card ' + (balance > 0 ? 'card-pendiente-red' : 'card-pendiente-green');
+    renderResumen();
+  }
+
+  // ── Resumen ────────────────────────────────────────────
+  function renderResumen() {
+    const people = [...new Set([...loans.map(l => l.person), ...payments.map(p => p.person)])].sort();
+    const list   = document.getElementById('resumen-list');
+    const empty  = document.getElementById('resumen-empty');
+
+    if (people.length === 0) {
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    list.innerHTML = people.map(name => {
+      const loaned  = loans.filter(l => l.person === name).reduce((s, l) => s + l.amount, 0);
+      const paid    = payments.filter(p => p.person === name).reduce((s, p) => s + p.amount, 0);
+      const pending = loaned - paid;
+      const pct     = loaned > 0 ? Math.min((paid / loaned) * 100, 100) : 0;
+      const statusClass = pending > 0 ? 'person-status-red' : 'person-status-green';
+      const statusText  = pending > 0 ? 'Debe ' + fmtCOP(pending) : 'Al día ✓';
+
+      return `
+        <div class="person-card">
+          <div class="person-header">
+            <div class="person-name-row">
+              <div class="avatar">${name[0].toUpperCase()}</div>
+              <span class="person-name">${name}</span>
+            </div>
+            <span class="${statusClass}">${statusText}</span>
+          </div>
+          <div class="mini-cards">
+            <div class="mini-card mini-green">
+              <div class="mini-label">Prestado</div>
+              <div class="mini-value">${fmtCOP(loaned)}</div>
+            </div>
+            <div class="mini-card mini-teal">
+              <div class="mini-label">Abonado</div>
+              <div class="mini-value">${fmtCOP(paid)}</div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="progress-label">${Math.round(pct)}% devuelto</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Historial ──────────────────────────────────────────
+  function renderHistorial() {
+    const all = [
+      ...loans.map(l => ({ ...l, type: 'loan' })),
+      ...payments.map(p => ({ ...p, type: 'payment' }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const list  = document.getElementById('historial-list');
+    const empty = document.getElementById('historial-empty');
+
+    if (all.length === 0) {
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    list.innerHTML = all.map(item => {
+      const isLoan    = item.type === 'loan';
+      const dotClass  = isLoan ? 'history-dot-loan' : 'history-dot-payment';
+      const amtClass  = isLoan ? 'history-amount-loan' : 'history-amount-payment';
+      const sign      = isLoan ? '+' : '−';
+      const typeLabel = isLoan ? 'Préstamo' : 'Abono';
+      const noteStr   = item.note ? ` · ${item.note}` : '';
+      const deleteFn  = isLoan ? `deleteLoan('${item.id}')` : `deletePayment('${item.id}')`;
+
+      return `
+        <div class="history-item">
+          <div class="history-dot ${dotClass}"></div>
+          <div class="history-body">
+            <div class="history-row1">
+              <span class="history-person">${item.person}</span>
+              <span class="${amtClass}">${sign}${fmtCOP(item.amount)}</span>
+            </div>
+            <div class="history-row2">
+              <span class="history-type">${typeLabel}${noteStr}</span>
+              <span class="history-date">${fmtDate(item.date)}</span>
+            </div>
+          </div>
+          <button class="btn-delete" onclick="${deleteFn}">×</button>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Datalist ───────────────────────────────────────────
+  function renderDatalist() {
+    const people = [...new Set([...loans.map(l => l.person), ...payments.map(p => p.person)])].sort();
+    document.getElementById('people-list').innerHTML = people.map(p => `<option value="${p}">`).join('');
+  }
+
+  // ── Toast ──────────────────────────────────────────────
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#c8f542;color:#0f0f13;font-weight:700;font-size:13px;padding:10px 20px;border-radius:99px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:999;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.style.opacity = '0', 1800);
+  }
+
+  // ── Init ───────────────────────────────────────────────
+  updateTotals();
+</script>
+</body>
+</html>
